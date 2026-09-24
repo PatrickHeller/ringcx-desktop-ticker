@@ -62,6 +62,76 @@
       Agenten anzeigen
     </label>
 
+    <p class="hint" style="margin-top: 8px;">KPIs Queue Performance</p>
+    <label class="checkbox-row">
+      <input name="KPI_QUEUE_OFFERED" type="checkbox" />
+      Offered
+    </label>
+    <label class="checkbox-row">
+      <input name="KPI_QUEUE_CALLS" type="checkbox" />
+      Calls
+    </label>
+    <label class="checkbox-row">
+      <input name="KPI_QUEUE_ABN" type="checkbox" />
+      Abandon
+    </label>
+    <label class="checkbox-row">
+      <input name="KPI_QUEUE_DISCONNECT" type="checkbox" />
+      Disconnect
+    </label>
+    <label class="checkbox-row">
+      <input name="KPI_QUEUE_QUEUED" type="checkbox" />
+      Queued
+    </label>
+    <label class="checkbox-row">
+      <input name="KPI_QUEUE_TOTAL_TALK" type="checkbox" />
+      Total Talk
+    </label>
+    <label class="checkbox-row">
+      <input name="KPI_QUEUE_AVG_TALK" type="checkbox" />
+      Ø Talk
+    </label>
+    <label class="checkbox-row">
+      <input name="KPI_QUEUE_TOTAL_QUEUE" type="checkbox" />
+      Total Queue
+    </label>
+    <label class="checkbox-row">
+      <input name="KPI_QUEUE_AVG_QUEUE" type="checkbox" />
+      Ø Queue
+    </label>
+    <label class="checkbox-row">
+      <input name="KPI_QUEUE_LONGEST_WAIT" type="checkbox" />
+      Longest Wait
+    </label>
+
+    <p class="hint" style="margin-top: 8px;">KPIs Agenten</p>
+    <label class="checkbox-row">
+      <input name="KPI_AGENT_ACD" type="checkbox" />
+      ACD
+    </label>
+    <label class="checkbox-row">
+      <input name="KPI_AGENT_RNA" type="checkbox" />
+      RONA
+    </label>
+    <label class="checkbox-row">
+      <input name="KPI_AGENT_TALK" type="checkbox" />
+      Talk Time
+    </label>
+    <label class="checkbox-row">
+      <input name="KPI_AGENT_STATUS" type="checkbox" />
+      Status Time
+    </label>
+
+    <p class="hint" style="margin-top: 8px;">Queues auswählen (leer = alle anzeigen)</p>
+    <div id="queue-filter-list" class="filter-list">
+      <p class="hint">Noch keine Live-Daten empfangen – öffnen, nachdem der Ticker einmal erfolgreich Daten geladen hat.</p>
+    </div>
+
+    <p class="hint" style="margin-top: 8px;">Agenten auswählen (leer = alle anzeigen)</p>
+    <div id="agent-filter-list" class="filter-list">
+      <p class="hint">Noch keine Live-Daten empfangen – öffnen, nachdem der Ticker einmal erfolgreich Daten geladen hat.</p>
+    </div>
+
     <div class="settings-actions">
       <button type="button" id="settings-cancel">Abbrechen</button>
       <button type="submit" class="primary">Speichern &amp; verbinden</button>

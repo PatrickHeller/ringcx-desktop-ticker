@@ -11,6 +11,16 @@ const minimizeBtn = document.getElementById('minimize-btn');
 const closeBtn = document.getElementById('close-btn');
 
 let scrollSpeed = 70;
+let queueFilter = [];
+let agentFilter = [];
+let lastPayload = null;
+let kpiConfig = {
+  queue: {
+    OFFERED: true, CALLS: true, ABN: true, DISCONNECT: true, QUEUED: true,
+    TOTAL_TALK: true, AVG_TALK: true, TOTAL_QUEUE: true, AVG_QUEUE: true, LONGEST_WAIT: true,
+  },
+  agent: { ACD: true, RNA: true, TALK: true, STATUS: true },
+};
 
 // Steuert einen Ticker-Track per requestAnimationFrame statt CSS-Animation,
 // damit er per Maus/Touch gegriffen und geschoben werden kann. Der Inhalt
@@ -130,35 +140,53 @@ function queueItemHtml(row) {
   const arrow = row.queued > 0
     ? '<span class="ti-arrow up">▲</span>'
     : '<span class="ti-arrow down">▼</span>';
+  const k = kpiConfig.queue;
+  const metrics = [];
+  if (k.OFFERED) metrics.push(`<span>OFF <b>${row.offered}</b></span>`);
+  if (k.CALLS) metrics.push(`<span>CALLS <b>${row.calls}</b></span>`);
+  if (k.ABN) metrics.push(`<span>ABN <b>${row.abn}</b></span>`);
+  if (k.DISCONNECT) metrics.push(`<span>DISC <b>${row.disconnect}</b></span>`);
+  if (k.QUEUED) metrics.push(`<span>QUEUED <b class="${queuedCls}">${row.queued}</b></span>`);
+  if (k.TOTAL_TALK) metrics.push(`<span>TOTAL TALK <b>${formatDuration(row.talk)}</b></span>`);
+  if (k.AVG_TALK) metrics.push(`<span>Ø TALK <b>${formatDuration(row.avg)}</b></span>`);
+  if (k.TOTAL_QUEUE) metrics.push(`<span>TOTAL QUEUE <b>${formatDuration(row.wait)}</b></span>`);
+  if (k.AVG_QUEUE) metrics.push(`<span>Ø QUEUE <b>${formatDuration(row.avgQueue)}</b></span>`);
+  if (k.LONGEST_WAIT) metrics.push(`<span>LONGEST WAIT <b>${formatDuration(row.lngQueue)}</b></span>`);
   return `
     <div class="ticker-item">
       ${arrow}
       <span class="ti-name">${escapeHtml(row.name)}</span>
       <span class="ti-state ${cls}">${escapeHtml(row.state)}</span>
-      <span class="ti-metrics">
-        <span>OFF <b>${row.offered}</b></span>
-        <span>CALLS <b>${row.calls}</b></span>
-        <span>ABN <b>${row.abn}</b></span>
-        <span>QUEUED <b class="${queuedCls}">${row.queued}</b></span>
-        <span>Ø TALK <b>${formatDuration(row.avg)}</b></span>
-        <span>LONGEST WAIT <b>${formatDuration(row.lngQueue)}</b></span>
-      </span>
+      <span class="ti-metrics">${metrics.join('')}</span>
     </div>`;
 }
 
 function agentItemHtml(agent) {
   const cls = stateClass(agent.state);
+  const k = kpiConfig.agent;
+  const metrics = [];
+  if (k.ACD) metrics.push(`<span>ACD <b>${escapeHtml(String(agent.acd))}</b></span>`);
+  if (k.RNA) metrics.push(`<span>RONA <b>${escapeHtml(String(agent.rna))}</b></span>`);
+  if (k.TALK) metrics.push(`<span>TALK <b>${formatDuration(agent.agn_talk_time)}</b></span>`);
+  if (k.STATUS) metrics.push(`<span>STATUS <b>${formatDuration(agent.statusTime)}</b></span>`);
   return `
     <div class="ticker-item">
       <span class="ti-name">${escapeHtml(agent.name)}</span>
       <span class="ti-state ${cls}">${escapeHtml(agent.state)}</span>
-      <span class="ti-metrics">
-        <span>ACD <b>${escapeHtml(String(agent.acd))}</b></span>
-        <span>RONA <b>${escapeHtml(String(agent.rna))}</b></span>
-        <span>TALK <b>${formatDuration(agent.agn_talk_time)}</b></span>
-        <span>STATUS <b>${formatDuration(agent.statusTime)}</b></span>
-      </span>
+      <span class="ti-metrics">${metrics.join('')}</span>
     </div>`;
+}
+
+function renderTickers() {
+  if (!lastPayload) return;
+  const queues = queueFilter.length === 0
+    ? lastPayload.queues
+    : lastPayload.queues.filter((q) => queueFilter.includes(q.name));
+  const agents = agentFilter.length === 0
+    ? lastPayload.agents
+    : lastPayload.agents.filter((a) => agentFilter.includes(a.name));
+  queueTicker.render(queues, queueItemHtml);
+  agentTicker.render(agents, agentItemHtml);
 }
 
 function setConnectionState(state, label) {
@@ -180,8 +208,8 @@ window.ringcx.onData((payload) => {
   clearError();
   setConnectionState('ok', 'verbunden');
   lastUpdateEl.textContent = new Date(payload.lastUpdate).toLocaleTimeString('de-DE');
-  queueTicker.render(payload.queues, queueItemHtml);
-  agentTicker.render(payload.agents, agentItemHtml);
+  lastPayload = payload;
+  renderTickers();
 });
 
 window.ringcx.onError((message) => {
@@ -204,6 +232,30 @@ function applyLocalConfig(cfg) {
   closeBtn.hidden = !borderless;
   queueSection.hidden = cfg.SHOW_QUEUES === false;
   agentSection.hidden = cfg.SHOW_AGENTS === false;
+
+  kpiConfig = {
+    queue: {
+      OFFERED: cfg.KPI_QUEUE_OFFERED !== false,
+      CALLS: cfg.KPI_QUEUE_CALLS !== false,
+      ABN: cfg.KPI_QUEUE_ABN !== false,
+      DISCONNECT: cfg.KPI_QUEUE_DISCONNECT !== false,
+      QUEUED: cfg.KPI_QUEUE_QUEUED !== false,
+      TOTAL_TALK: cfg.KPI_QUEUE_TOTAL_TALK !== false,
+      AVG_TALK: cfg.KPI_QUEUE_AVG_TALK !== false,
+      TOTAL_QUEUE: cfg.KPI_QUEUE_TOTAL_QUEUE !== false,
+      AVG_QUEUE: cfg.KPI_QUEUE_AVG_QUEUE !== false,
+      LONGEST_WAIT: cfg.KPI_QUEUE_LONGEST_WAIT !== false,
+    },
+    agent: {
+      ACD: cfg.KPI_AGENT_ACD !== false,
+      RNA: cfg.KPI_AGENT_RNA !== false,
+      TALK: cfg.KPI_AGENT_TALK !== false,
+      STATUS: cfg.KPI_AGENT_STATUS !== false,
+    },
+  };
+  queueFilter = Array.isArray(cfg.QUEUE_FILTER) ? cfg.QUEUE_FILTER : [];
+  agentFilter = Array.isArray(cfg.AGENT_FILTER) ? cfg.AGENT_FILTER : [];
+  renderTickers();
 }
 
 settingsBtn.addEventListener('click', () => window.ringcx.openSettings());

@@ -15,4 +15,6 @@ contextBridge.exposeInMainWorld('ringcx', {
   setContentHeight: (height) => ipcRenderer.invoke('window:setContentHeight', height),
   openSettings: () => ipcRenderer.invoke('settings:open'),
   closeSettingsWindow: () => ipcRenderer.invoke('settings:close'),
+  getQueueNames: () => ipcRenderer.invoke('data:getQueueNames'),
+  getAgentNames: () => ipcRenderer.invoke('data:getAgentNames'),
 });

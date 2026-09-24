@@ -21,7 +21,7 @@ async function getJson(url, headers) {
   const text = await res.text();
   let json = null;
   try { json = JSON.parse(text); } catch (_) { /* keine JSON-Antwort */ }
-  return { status: res.status, body: text, json };
+  return { status: res.status, body: text, json, headers: res.headers };
 }
 
 async function loginWithJwt(cfg) {
@@ -113,11 +113,18 @@ async function loginRingcxWithRingex(cfg, ringexAccessToken, ringexTokenType) {
   return { ringcx_access_token: response.json.accessToken, ringcx_token_type: response.json.tokenType || 'Bearer' };
 }
 
+const GROUP_AGENTS_CACHE_MS = 5 * 60 * 1000;
+
 class RingCXClient {
   constructor(cfg, tokenStore) {
     this.cfg = cfg;
     // tokenStore: { load(): object, save(obj): void } - persistenter Cache (z.B. userData/token_cache.json)
     this.tokenStore = tokenStore;
+    // Die Agent-Group-Mitgliederliste ändert sich praktisch nie zwischen zwei
+    // Polls - wird gecacht, um nicht bei jedem Zyklus einen von drei
+    // Endpunkten unnötig gegen das RingCX-Rate-Limit mitzuzählen.
+    this.groupAgentsCache = null;
+    this.groupAgentsCachedAt = 0;
   }
 
   async getValidToken() {
@@ -152,8 +159,12 @@ class RingCXClient {
       headers = { Authorization: `${tokenType} ${accessToken}`, 'Content-Type': 'application/json' };
       response = await getJson(url, headers);
     }
+    if (response.status === 429) {
+      const retryAfter = response.headers?.get?.('retry-after');
+      throw new Error(`Request Rate exceeded (${path})${retryAfter ? ` – Retry-After: ${retryAfter}s` : ''}`);
+    }
     if (response.status < 200 || response.status >= 300 || !Array.isArray(response.json)) {
-      throw new Error(`API Fehler (${path}): HTTP ${response.status}`);
+      throw new Error(`API Fehler (${path}): HTTP ${response.status} – ${response.body.slice(0, 200)}`);
     }
     return response.json;
   }
@@ -190,10 +201,15 @@ class RingCXClient {
   }
 
   async getAllGroupAgents() {
+    const isFresh = this.groupAgentsCache && (Date.now() - this.groupAgentsCachedAt) < GROUP_AGENTS_CACHE_MS;
+    if (isFresh) return this.groupAgentsCache;
+
     const accountId = this.cfg.ACCOUNT_ID;
     const agentGroupId = this.cfg.AGENT_GROUP_ID;
     const raw = await this.authedGet(`/voice/api/v1/admin/accounts/${accountId}/agentGroups/${agentGroupId}/agents`);
-    return raw.map((item) => normalizeAgent(item, 'NICHT ANGEMELDET'));
+    this.groupAgentsCache = raw.map((item) => normalizeAgent(item, 'NICHT ANGEMELDET'));
+    this.groupAgentsCachedAt = Date.now();
+    return this.groupAgentsCache;
   }
 
   async getAgents() {

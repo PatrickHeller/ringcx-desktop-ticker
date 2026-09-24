@@ -11,3 +11,16 @@ html, body.settings-body {
   border-radius: 0;
   padding: 24px 28px 28px;
 }
+
+.filter-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  max-height: 140px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.filter-list .checkbox-row { flex: 0 0 auto; }

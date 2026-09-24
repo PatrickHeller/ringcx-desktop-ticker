@@ -24,11 +24,29 @@ const DEFAULT_CONFIG = {
   ALWAYS_ON_TOP: false,
   SHOW_QUEUES: true,
   SHOW_AGENTS: true,
+  KPI_QUEUE_OFFERED: true,
+  KPI_QUEUE_CALLS: true,
+  KPI_QUEUE_ABN: true,
+  KPI_QUEUE_DISCONNECT: true,
+  KPI_QUEUE_QUEUED: true,
+  KPI_QUEUE_TOTAL_TALK: true,
+  KPI_QUEUE_AVG_TALK: true,
+  KPI_QUEUE_TOTAL_QUEUE: true,
+  KPI_QUEUE_AVG_QUEUE: true,
+  KPI_QUEUE_LONGEST_WAIT: true,
+  KPI_AGENT_ACD: true,
+  KPI_AGENT_RNA: true,
+  KPI_AGENT_TALK: true,
+  KPI_AGENT_STATUS: true,
+  QUEUE_FILTER: [],
+  AGENT_FILTER: [],
 };
 
 let mainWindow = null;
 let settingsWindow = null;
 let pollTimer = null;
+let lastQueues = [];
+let lastAgents = [];
 
 function readJsonFile(filePath) {
   try {
@@ -64,9 +82,11 @@ const tokenStore = {
   save: (data) => writeJsonFile(TOKEN_CACHE_PATH, data),
 };
 
+const MAX_BACKOFF_MS = 5 * 60 * 1000;
+
 function stopPolling() {
   if (pollTimer) {
-    clearInterval(pollTimer);
+    clearTimeout(pollTimer);
     pollTimer = null;
   }
 }
@@ -79,19 +99,27 @@ function startPolling() {
     return;
   }
   const client = new RingCXClient(cfg, tokenStore);
-  const intervalMs = Math.max(5, parseInt(cfg.POLL_INTERVAL_SECONDS, 10) || 15) * 1000;
+  const baseIntervalMs = Math.max(5, parseInt(cfg.POLL_INTERVAL_SECONDS, 10) || 15) * 1000;
+  let backoffMs = baseIntervalMs;
 
   const poll = async () => {
     try {
       const data = await client.getAll();
+      lastQueues = data.queues;
+      lastAgents = data.agents;
       mainWindow?.webContents.send('ringcx-data', { ...data, lastUpdate: new Date().toISOString() });
+      backoffMs = baseIntervalMs;
     } catch (err) {
       mainWindow?.webContents.send('ringcx-error', err.message || String(err));
+      // Bei Rate-Limit-Fehlern (429) das Intervall exponentiell verlängern,
+      // statt weiter im normalen Takt gegen das Limit zu laufen.
+      const isRateLimited = /rate exceeded|429/i.test(err.message || '');
+      backoffMs = isRateLimited ? Math.min(backoffMs * 2, MAX_BACKOFF_MS) : baseIntervalMs;
     }
+    pollTimer = setTimeout(poll, backoffMs);
   };
 
   poll();
-  pollTimer = setInterval(poll, intervalMs);
 }
 
 function createWindow() {
@@ -180,6 +208,8 @@ ipcMain.handle('window:setContentHeight', (_event, height) => {
 });
 ipcMain.handle('settings:open', () => openSettingsWindow());
 ipcMain.handle('settings:close', () => settingsWindow?.close());
+ipcMain.handle('data:getQueueNames', () => lastQueues.map((q) => q.name));
+ipcMain.handle('data:getAgentNames', () => lastAgents.map((a) => a.name));
 
 app.whenReady().then(createWindow);
 
