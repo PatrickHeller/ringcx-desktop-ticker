@@ -104,8 +104,8 @@ function createWindow() {
     height: bounds?.height ?? 220,
     x: bounds?.x,
     y: bounds?.y,
-    minHeight: 160,
-    title: 'RingCX Ticker',
+    minHeight: 60,
+    title: `RingCX Ticker v${app.getVersion()}`,
     backgroundColor: '#0b0f16',
     frame: !cfg.BORDERLESS,
     alwaysOnTop: !!cfg.ALWAYS_ON_TOP,
@@ -136,7 +136,7 @@ function openSettingsWindow() {
     height: 720,
     minWidth: 420,
     minHeight: 500,
-    title: 'RingCX Ticker – Einstellungen',
+    title: `RingCX Ticker v${app.getVersion()} – Einstellungen`,
     backgroundColor: '#0b0f16',
     parent: mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined,
     webPreferences: {
@@ -167,8 +167,17 @@ ipcMain.handle('config:save', (_event, cfg) => {
   return merged;
 });
 ipcMain.handle('config:isComplete', () => isConfigComplete(loadConfig()));
+ipcMain.handle('app:getVersion', () => app.getVersion());
 ipcMain.handle('window:minimize', () => mainWindow?.minimize());
 ipcMain.handle('window:close', () => mainWindow?.close());
+ipcMain.handle('window:setContentHeight', (_event, height) => {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  const [width] = mainWindow.getContentSize();
+  const targetHeight = Math.max(1, Math.round(height));
+  const [, currentHeight] = mainWindow.getContentSize();
+  if (Math.abs(currentHeight - targetHeight) < 2) return;
+  mainWindow.setContentSize(width, targetHeight);
+});
 ipcMain.handle('settings:open', () => openSettingsWindow());
 ipcMain.handle('settings:close', () => settingsWindow?.close());
 

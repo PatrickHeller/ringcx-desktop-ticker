@@ -197,7 +197,7 @@ window.ringcx.onConfigUpdated((cfg) => {
 function applyLocalConfig(cfg) {
   const parsedSpeed = parseInt(cfg.SCROLL_SPEED, 10);
   scrollSpeed = Number.isNaN(parsedSpeed) ? 70 : Math.max(0, parsedSpeed);
-  const fontSize = Math.max(8, parseInt(cfg.FONT_SIZE, 10) || 15);
+  const fontSize = Math.max(6, parseInt(cfg.FONT_SIZE, 10) || 15);
   document.documentElement.style.setProperty('--ticker-font-size', `${fontSize}px`);
   const borderless = !!cfg.BORDERLESS;
   minimizeBtn.hidden = !borderless;
@@ -210,9 +210,25 @@ settingsBtn.addEventListener('click', () => window.ringcx.openSettings());
 minimizeBtn.addEventListener('click', () => window.ringcx.minimizeWindow());
 closeBtn.addEventListener('click', () => window.ringcx.closeWindow());
 
+// Passt die Fensterhöhe automatisch an den tatsächlich benötigten Platz an
+// (Anzahl sichtbarer Zeilen, Fehlerbanner, Schriftgröße), statt fixer Höhe.
+const appEl = document.querySelector('.app');
+let heightSyncScheduled = false;
+function syncWindowHeight() {
+  if (heightSyncScheduled) return;
+  heightSyncScheduled = true;
+  requestAnimationFrame(() => {
+    heightSyncScheduled = false;
+    window.ringcx.setContentHeight(appEl.scrollHeight);
+  });
+}
+new ResizeObserver(syncWindowHeight).observe(appEl);
+
 (async () => {
   const cfg = await window.ringcx.getConfig();
   applyLocalConfig(cfg);
   const complete = await window.ringcx.isConfigComplete();
   if (!complete) window.ringcx.openSettings();
+  const version = await window.ringcx.getVersion();
+  document.getElementById('app-version').textContent = `v${version}`;
 })();

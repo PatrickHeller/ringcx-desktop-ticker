@@ -9,8 +9,10 @@ contextBridge.exposeInMainWorld('ringcx', {
   getConfig: () => ipcRenderer.invoke('config:get'),
   saveConfig: (cfg) => ipcRenderer.invoke('config:save', cfg),
   isConfigComplete: () => ipcRenderer.invoke('config:isComplete'),
+  getVersion: () => ipcRenderer.invoke('app:getVersion'),
   minimizeWindow: () => ipcRenderer.invoke('window:minimize'),
   closeWindow: () => ipcRenderer.invoke('window:close'),
+  setContentHeight: (height) => ipcRenderer.invoke('window:setContentHeight', height),
   openSettings: () => ipcRenderer.invoke('settings:open'),
   closeSettingsWindow: () => ipcRenderer.invoke('settings:close'),
 });

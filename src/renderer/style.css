@@ -16,14 +16,13 @@
 
 html, body {
   margin: 0;
-  height: 100%;
   background: var(--bg);
   color: var(--text);
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   overflow: hidden;
 }
 
-.app { display: flex; flex-direction: column; height: 100vh; }
+.app { display: flex; flex-direction: column; }
 
 .topbar {
   display: flex;
@@ -36,6 +35,7 @@ html, body {
 }
 
 .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; letter-spacing: 0.08em; }
+.app-version { font-size: 10px; font-weight: 400; color: var(--text-dim); letter-spacing: 0; }
 .brand-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--red); box-shadow: 0 0 8px var(--red); animation: blink 1.6s ease-in-out infinite; }
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 
@@ -69,18 +69,27 @@ html, body {
 
 .ticker-stack { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 6px 0; }
 
-.ticker-row { display: flex; align-items: stretch; background: var(--bg-row); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); height: 72px; }
+.ticker-row {
+  display: flex;
+  align-items: stretch;
+  background: var(--bg-row);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  height: calc(var(--ticker-font-size, 15px) * 2.6);
+}
 
 .ticker-label {
-  flex: 0 0 90px;
+  flex: 0 0 calc(var(--ticker-font-size, 15px) * 3.8);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: calc(var(--ticker-font-size, 15px) * 0.67);
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   color: #0b0f16;
   background: var(--accent);
+  padding: 0 4px;
+  text-align: center;
 }
 
 .ticker-viewport {
