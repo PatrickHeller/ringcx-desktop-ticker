@@ -3,7 +3,10 @@
   "version": "1.0.1",
   "description": "Live-Ticker-Desktop-App für RingCX Queue- und Agenten-Echtzeitdaten",
   "main": "src/main.js",
-  "author": "Patrick Heller",
+  "author": {
+    "name": "Patrick Heller",
+    "email": "helllerpat@gmail.com"
+  },
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
