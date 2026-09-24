@@ -8,10 +8,7 @@ const connState = document.getElementById('conn-state');
 const lastUpdateEl = document.getElementById('last-update');
 const errorBanner = document.getElementById('error-banner');
 
-const overlay = document.getElementById('settings-overlay');
-const settingsForm = document.getElementById('settings-form');
 const settingsBtn = document.getElementById('settings-btn');
-const settingsCancel = document.getElementById('settings-cancel');
 const minimizeBtn = document.getElementById('minimize-btn');
 const closeBtn = document.getElementById('close-btn');
 
@@ -123,8 +120,9 @@ window.ringcx.onError((message) => {
   showError(message);
 });
 
-window.ringcx.onConfigMissing(() => {
-  openSettings();
+window.ringcx.onConfigUpdated((cfg) => {
+  applyLocalConfig(cfg);
+  setConnectionState('unknown', 'verbinde…');
 });
 
 function applyLocalConfig(cfg) {
@@ -136,46 +134,13 @@ function applyLocalConfig(cfg) {
   agentSection.hidden = cfg.SHOW_AGENTS === false;
 }
 
-async function openSettings() {
-  const cfg = await window.ringcx.getConfig();
-  for (const [key, value] of Object.entries(cfg)) {
-    const field = settingsForm.elements.namedItem(key);
-    if (!field) continue;
-    if (field.type === 'checkbox') field.checked = !!value;
-    else field.value = value ?? '';
-  }
-  overlay.hidden = false;
-}
-
-function closeSettings() {
-  overlay.hidden = true;
-}
-
-settingsBtn.addEventListener('click', openSettings);
-settingsCancel.addEventListener('click', closeSettings);
+settingsBtn.addEventListener('click', () => window.ringcx.openSettings());
 minimizeBtn.addEventListener('click', () => window.ringcx.minimizeWindow());
 closeBtn.addEventListener('click', () => window.ringcx.closeWindow());
-document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape' && !overlay.hidden) closeSettings();
-});
-
-settingsForm.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const formData = new FormData(settingsForm);
-  const cfg = Object.fromEntries(formData.entries());
-  cfg.BORDERLESS = settingsForm.elements.namedItem('BORDERLESS').checked;
-  cfg.ALWAYS_ON_TOP = settingsForm.elements.namedItem('ALWAYS_ON_TOP').checked;
-  cfg.SHOW_QUEUES = settingsForm.elements.namedItem('SHOW_QUEUES').checked;
-  cfg.SHOW_AGENTS = settingsForm.elements.namedItem('SHOW_AGENTS').checked;
-  const saved = await window.ringcx.saveConfig(cfg);
-  applyLocalConfig(saved);
-  closeSettings();
-  setConnectionState('unknown', 'verbinde…');
-});
 
 (async () => {
   const cfg = await window.ringcx.getConfig();
   applyLocalConfig(cfg);
   const complete = await window.ringcx.isConfigComplete();
-  if (!complete) openSettings();
+  if (!complete) window.ringcx.openSettings();
 })();

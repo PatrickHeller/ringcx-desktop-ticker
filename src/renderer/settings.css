@@ -1,0 +1,13 @@
+html, body.settings-body {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.settings-card--window {
+  width: auto;
+  max-height: none;
+  overflow-y: visible;
+  border: none;
+  border-radius: 0;
+  padding: 24px 28px 28px;
+}

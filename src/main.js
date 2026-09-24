@@ -26,6 +26,7 @@ const DEFAULT_CONFIG = {
 };
 
 let mainWindow = null;
+let settingsWindow = null;
 let pollTimer = null;
 
 function readJsonFile(filePath) {
@@ -73,7 +74,7 @@ function startPolling() {
   stopPolling();
   const cfg = loadConfig();
   if (!isConfigComplete(cfg)) {
-    mainWindow?.webContents.send('ringcx-config-missing');
+    openSettingsWindow();
     return;
   }
   const client = new RingCXClient(cfg, tokenStore);
@@ -123,6 +124,31 @@ function createWindow() {
   if (previous && !previous.isDestroyed()) previous.close();
 }
 
+function openSettingsWindow() {
+  if (settingsWindow && !settingsWindow.isDestroyed()) {
+    settingsWindow.show();
+    settingsWindow.focus();
+    return;
+  }
+  settingsWindow = new BrowserWindow({
+    width: 500,
+    height: 720,
+    minWidth: 420,
+    minHeight: 500,
+    title: 'RingCX Ticker – Einstellungen',
+    backgroundColor: '#0b0f16',
+    parent: mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  settingsWindow.setMenuBarVisibility(false);
+  settingsWindow.loadFile(path.join(__dirname, 'renderer', 'settings.html'));
+  settingsWindow.on('closed', () => { settingsWindow = null; });
+}
+
 ipcMain.handle('config:get', () => loadConfig());
 ipcMain.handle('config:save', (_event, cfg) => {
   const previous = loadConfig();
@@ -136,11 +162,14 @@ ipcMain.handle('config:save', (_event, cfg) => {
     mainWindow?.setAlwaysOnTop(!!merged.ALWAYS_ON_TOP);
     startPolling();
   }
+  mainWindow?.webContents.send('ringcx-config-updated', merged);
   return merged;
 });
 ipcMain.handle('config:isComplete', () => isConfigComplete(loadConfig()));
 ipcMain.handle('window:minimize', () => mainWindow?.minimize());
 ipcMain.handle('window:close', () => mainWindow?.close());
+ipcMain.handle('settings:open', () => openSettingsWindow());
+ipcMain.handle('settings:close', () => settingsWindow?.close());
 
 app.whenReady().then(createWindow);
 

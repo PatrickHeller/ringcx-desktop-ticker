@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+<title>RingCX Ticker – Einstellungen</title>
+<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="settings.css" />
+</head>
+<body class="settings-body">
+  <form id="settings-form" class="settings-card settings-card--window">
+    <h2>RingCX-Zugangsdaten</h2>
+    <p class="hint">Diese Daten werden lokal in der App-Konfiguration gespeichert und nur für die Verbindung zur RingCX-API verwendet.</p>
+
+    <label>Base URL
+      <input name="BASE_URL" type="text" placeholder="https://ringcx.ringcentral.com" required />
+    </label>
+    <label>Auth URL (RingCentral OAuth)
+      <input name="AUTH_URL" type="text" placeholder="https://platform.ringcentral.com/restapi/oauth/token" required />
+    </label>
+    <label>Account ID
+      <input name="ACCOUNT_ID" type="text" required />
+    </label>
+    <label>Agent Group ID
+      <input name="AGENT_GROUP_ID" type="text" required />
+    </label>
+    <label>Client ID
+      <input name="CLIENT_ID" type="text" required />
+    </label>
+    <label>Client Secret
+      <input name="CLIENT_SECRET" type="password" required />
+    </label>
+    <label>JWT Assertion
+      <textarea name="JWT_ASSERTION" rows="3" required></textarea>
+    </label>
+    <label>Aktualisierung (Sekunden)
+      <input name="POLL_INTERVAL_SECONDS" type="number" min="5" step="1" placeholder="15" />
+    </label>
+    <label>Laufgeschwindigkeit Ticker (Pixel/Sekunde)
+      <input name="SCROLL_SPEED" type="number" min="10" step="5" placeholder="70" />
+    </label>
+
+    <label class="checkbox-row">
+      <input name="BORDERLESS" type="checkbox" />
+      Randloses Fenster (ohne Titelleiste)
+    </label>
+    <label class="checkbox-row">
+      <input name="ALWAYS_ON_TOP" type="checkbox" />
+      Immer im Vordergrund (Always on Top)
+    </label>
+
+    <p class="hint" style="margin-top: 8px;">Anzeige</p>
+    <label class="checkbox-row">
+      <input name="SHOW_QUEUES" type="checkbox" />
+      Queue Performance anzeigen
+    </label>
+    <label class="checkbox-row">
+      <input name="SHOW_AGENTS" type="checkbox" />
+      Agenten anzeigen
+    </label>
+
+    <div class="settings-actions">
+      <button type="button" id="settings-cancel">Abbrechen</button>
+      <button type="submit" class="primary">Speichern &amp; verbinden</button>
+    </div>
+  </form>
+
+  <script src="settings.js"></script>
+</body>
+</html>
