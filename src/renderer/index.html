@@ -17,19 +17,21 @@
         <span id="conn-state" class="conn-state conn-unknown">verbinde…</span>
         <span id="last-update" class="last-update"></span>
         <button id="settings-btn" class="icon-btn" title="Einstellungen">⚙</button>
+        <button id="minimize-btn" class="icon-btn window-control" title="Minimieren" hidden>–</button>
+        <button id="close-btn" class="icon-btn window-control" title="Schließen" hidden>✕</button>
       </div>
     </header>
 
     <div id="error-banner" class="error-banner" hidden></div>
 
     <main class="ticker-stack">
-      <section class="ticker-row" aria-label="Queue Performance">
+      <section id="queue-section" class="ticker-row" aria-label="Queue Performance">
         <div class="ticker-label">QUEUES</div>
         <div class="ticker-viewport">
           <div id="queue-track" class="ticker-track"></div>
         </div>
       </section>
-      <section class="ticker-row" aria-label="Agenten">
+      <section id="agent-section" class="ticker-row" aria-label="Agenten">
         <div class="ticker-label">AGENTS</div>
         <div class="ticker-viewport">
           <div id="agent-track" class="ticker-track"></div>
@@ -66,6 +68,28 @@
       </label>
       <label>Aktualisierung (Sekunden)
         <input name="POLL_INTERVAL_SECONDS" type="number" min="5" step="1" placeholder="15" />
+      </label>
+      <label>Laufgeschwindigkeit Ticker (Pixel/Sekunde)
+        <input name="SCROLL_SPEED" type="number" min="10" step="5" placeholder="70" />
+      </label>
+
+      <label class="checkbox-row">
+        <input name="BORDERLESS" type="checkbox" />
+        Randloses Fenster (ohne Titelleiste)
+      </label>
+      <label class="checkbox-row">
+        <input name="ALWAYS_ON_TOP" type="checkbox" />
+        Immer im Vordergrund (Always on Top)
+      </label>
+
+      <p class="hint" style="margin-top: 8px;">Anzeige</p>
+      <label class="checkbox-row">
+        <input name="SHOW_QUEUES" type="checkbox" />
+        Queue Performance anzeigen
+      </label>
+      <label class="checkbox-row">
+        <input name="SHOW_AGENTS" type="checkbox" />
+        Agenten anzeigen
       </label>
 
       <div class="settings-actions">

@@ -12,6 +12,8 @@
 
 * { box-sizing: border-box; }
 
+[hidden] { display: none !important; }
+
 html, body {
   margin: 0;
   height: 100%;
@@ -54,6 +56,8 @@ html, body {
   font-size: 14px;
 }
 .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+.window-control { -webkit-app-region: no-drag; }
+#close-btn:hover { border-color: var(--red); color: var(--red); }
 
 .error-banner {
   background: rgba(239,68,68,0.12);
@@ -125,6 +129,8 @@ html, body {
   z-index: 10;
 }
 
+.overlay[hidden] { display: none; }
+
 .settings-card {
   background: var(--bg-row);
   border: 1px solid var(--border);
@@ -142,6 +148,8 @@ html, body {
 .settings-card .hint { margin: 0 0 6px; font-size: 12px; color: var(--text-dim); }
 
 .settings-card label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text-dim); }
+.settings-card label.checkbox-row { flex-direction: row; align-items: center; gap: 8px; font-size: 13px; color: var(--text); }
+.settings-card label.checkbox-row input { width: auto; }
 .settings-card input, .settings-card textarea {
   background: #0b0f16;
   border: 1px solid var(--border);

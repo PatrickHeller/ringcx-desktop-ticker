@@ -9,4 +9,6 @@ contextBridge.exposeInMainWorld('ringcx', {
   getConfig: () => ipcRenderer.invoke('config:get'),
   saveConfig: (cfg) => ipcRenderer.invoke('config:save', cfg),
   isConfigComplete: () => ipcRenderer.invoke('config:isComplete'),
+  minimizeWindow: () => ipcRenderer.invoke('window:minimize'),
+  closeWindow: () => ipcRenderer.invoke('window:close'),
 });

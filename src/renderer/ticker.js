@@ -1,5 +1,7 @@
 'use strict';
 
+const queueSection = document.getElementById('queue-section');
+const agentSection = document.getElementById('agent-section');
 const queueTrack = document.getElementById('queue-track');
 const agentTrack = document.getElementById('agent-track');
 const connState = document.getElementById('conn-state');
@@ -10,6 +12,10 @@ const overlay = document.getElementById('settings-overlay');
 const settingsForm = document.getElementById('settings-form');
 const settingsBtn = document.getElementById('settings-btn');
 const settingsCancel = document.getElementById('settings-cancel');
+const minimizeBtn = document.getElementById('minimize-btn');
+const closeBtn = document.getElementById('close-btn');
+
+let scrollSpeed = 70;
 
 function formatDuration(totalSeconds) {
   const s = Math.max(0, parseInt(totalSeconds, 10) || 0);
@@ -81,8 +87,7 @@ function renderTrack(trackEl, items, itemHtmlFn) {
   trackEl.innerHTML = html + html;
 
   const singleWidth = trackEl.scrollWidth / 2;
-  const pixelsPerSecond = 70;
-  const duration = Math.max(12, singleWidth / pixelsPerSecond);
+  const duration = Math.max(4, singleWidth / scrollSpeed);
   trackEl.style.animation = 'none';
   trackEl.style.setProperty('--scroll-duration', `${duration}s`);
   // Reflow erzwingen, damit die Animation mit neuer Dauer neu startet
@@ -122,11 +127,22 @@ window.ringcx.onConfigMissing(() => {
   openSettings();
 });
 
+function applyLocalConfig(cfg) {
+  scrollSpeed = Math.max(1, parseInt(cfg.SCROLL_SPEED, 10) || 70);
+  const borderless = !!cfg.BORDERLESS;
+  minimizeBtn.hidden = !borderless;
+  closeBtn.hidden = !borderless;
+  queueSection.hidden = cfg.SHOW_QUEUES === false;
+  agentSection.hidden = cfg.SHOW_AGENTS === false;
+}
+
 async function openSettings() {
   const cfg = await window.ringcx.getConfig();
   for (const [key, value] of Object.entries(cfg)) {
     const field = settingsForm.elements.namedItem(key);
-    if (field) field.value = value ?? '';
+    if (!field) continue;
+    if (field.type === 'checkbox') field.checked = !!value;
+    else field.value = value ?? '';
   }
   overlay.hidden = false;
 }
@@ -136,21 +152,30 @@ function closeSettings() {
 }
 
 settingsBtn.addEventListener('click', openSettings);
-settingsCancel.addEventListener('click', async () => {
-  const complete = await window.ringcx.isConfigComplete();
-  if (complete) closeSettings();
+settingsCancel.addEventListener('click', closeSettings);
+minimizeBtn.addEventListener('click', () => window.ringcx.minimizeWindow());
+closeBtn.addEventListener('click', () => window.ringcx.closeWindow());
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !overlay.hidden) closeSettings();
 });
 
 settingsForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const formData = new FormData(settingsForm);
   const cfg = Object.fromEntries(formData.entries());
-  await window.ringcx.saveConfig(cfg);
+  cfg.BORDERLESS = settingsForm.elements.namedItem('BORDERLESS').checked;
+  cfg.ALWAYS_ON_TOP = settingsForm.elements.namedItem('ALWAYS_ON_TOP').checked;
+  cfg.SHOW_QUEUES = settingsForm.elements.namedItem('SHOW_QUEUES').checked;
+  cfg.SHOW_AGENTS = settingsForm.elements.namedItem('SHOW_AGENTS').checked;
+  const saved = await window.ringcx.saveConfig(cfg);
+  applyLocalConfig(saved);
   closeSettings();
   setConnectionState('unknown', 'verbinde…');
 });
 
 (async () => {
+  const cfg = await window.ringcx.getConfig();
+  applyLocalConfig(cfg);
   const complete = await window.ringcx.isConfigComplete();
   if (!complete) openSettings();
 })();

@@ -18,6 +18,11 @@ const DEFAULT_CONFIG = {
   CLIENT_SECRET: '',
   JWT_ASSERTION: '',
   POLL_INTERVAL_SECONDS: 15,
+  SCROLL_SPEED: 70,
+  BORDERLESS: false,
+  ALWAYS_ON_TOP: false,
+  SHOW_QUEUES: true,
+  SHOW_AGENTS: true,
 };
 
 let mainWindow = null;
@@ -88,12 +93,20 @@ function startPolling() {
 }
 
 function createWindow() {
+  const cfg = loadConfig();
+  const bounds = mainWindow && !mainWindow.isDestroyed() ? mainWindow.getBounds() : null;
+  const previous = mainWindow;
+
   mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 220,
+    width: bounds?.width ?? 1400,
+    height: bounds?.height ?? 220,
+    x: bounds?.x,
+    y: bounds?.y,
     minHeight: 160,
     title: 'RingCX Ticker',
     backgroundColor: '#0b0f16',
+    frame: !cfg.BORDERLESS,
+    alwaysOnTop: !!cfg.ALWAYS_ON_TOP,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -106,17 +119,28 @@ function createWindow() {
   mainWindow.webContents.on('did-finish-load', () => {
     startPolling();
   });
+
+  if (previous && !previous.isDestroyed()) previous.close();
 }
 
 ipcMain.handle('config:get', () => loadConfig());
 ipcMain.handle('config:save', (_event, cfg) => {
-  const merged = { ...loadConfig(), ...cfg };
+  const previous = loadConfig();
+  const merged = { ...previous, ...cfg };
   saveConfig(merged);
   writeJsonFile(TOKEN_CACHE_PATH, {});
-  startPolling();
+
+  if (Boolean(previous.BORDERLESS) !== Boolean(merged.BORDERLESS)) {
+    createWindow();
+  } else {
+    mainWindow?.setAlwaysOnTop(!!merged.ALWAYS_ON_TOP);
+    startPolling();
+  }
   return merged;
 });
 ipcMain.handle('config:isComplete', () => isConfigComplete(loadConfig()));
+ipcMain.handle('window:minimize', () => mainWindow?.minimize());
+ipcMain.handle('window:close', () => mainWindow?.close());
 
 app.whenReady().then(createWindow);
 
