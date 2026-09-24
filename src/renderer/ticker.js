@@ -2,8 +2,6 @@
 
 const queueSection = document.getElementById('queue-section');
 const agentSection = document.getElementById('agent-section');
-const queueTrack = document.getElementById('queue-track');
-const agentTrack = document.getElementById('agent-track');
 const connState = document.getElementById('conn-state');
 const lastUpdateEl = document.getElementById('last-update');
 const errorBanner = document.getElementById('error-banner');
@@ -13,6 +11,96 @@ const minimizeBtn = document.getElementById('minimize-btn');
 const closeBtn = document.getElementById('close-btn');
 
 let scrollSpeed = 70;
+
+// Steuert einen Ticker-Track per requestAnimationFrame statt CSS-Animation,
+// damit er per Maus/Touch gegriffen und geschoben werden kann. Der Inhalt
+// wird doppelt gerendert; der Offset wird immer auf (-singleWidth, 0]
+// normalisiert, sodass der Übergang nahtlos bleibt, egal in welche
+// Richtung gezogen wird.
+class Ticker {
+  constructor(viewportEl, trackEl) {
+    this.viewportEl = viewportEl;
+    this.trackEl = trackEl;
+    this.offset = 0;
+    this.singleWidth = 0;
+    this.dragging = false;
+    this.dragMoved = false;
+    this.startX = 0;
+    this.startOffset = 0;
+
+    viewportEl.addEventListener('pointerdown', (e) => this.onPointerDown(e));
+    viewportEl.addEventListener('pointermove', (e) => this.onPointerMove(e));
+    viewportEl.addEventListener('pointerup', (e) => this.onPointerUp(e));
+    viewportEl.addEventListener('pointercancel', (e) => this.onPointerUp(e));
+  }
+
+  normalize(offset) {
+    if (this.singleWidth <= 0) return 0;
+    let o = offset % this.singleWidth;
+    if (o > 0) o -= this.singleWidth;
+    return o;
+  }
+
+  render(items, itemHtmlFn) {
+    if (!items || items.length === 0) {
+      this.singleWidth = 0;
+      this.offset = 0;
+      this.trackEl.style.transform = 'translateX(0)';
+      this.trackEl.innerHTML = '<div class="ticker-item"><span class="ti-name">Keine Daten</span></div>';
+      return;
+    }
+    const html = items.map(itemHtmlFn).join('');
+    this.trackEl.innerHTML = html + html;
+    this.singleWidth = this.trackEl.scrollWidth / 2;
+    this.offset = this.normalize(this.offset);
+  }
+
+  tick(deltaSeconds) {
+    if (!this.dragging && this.singleWidth > 0) {
+      this.offset = this.normalize(this.offset - scrollSpeed * deltaSeconds);
+    }
+    this.trackEl.style.transform = `translateX(${this.offset}px)`;
+  }
+
+  onPointerDown(e) {
+    if (this.singleWidth <= 0) return;
+    this.dragging = true;
+    this.dragMoved = false;
+    this.startX = e.clientX;
+    this.startOffset = this.offset;
+    this.viewportEl.setPointerCapture(e.pointerId);
+    this.viewportEl.classList.add('dragging');
+  }
+
+  onPointerMove(e) {
+    if (!this.dragging) return;
+    const dx = e.clientX - this.startX;
+    if (Math.abs(dx) > 3) this.dragMoved = true;
+    this.offset = this.normalize(this.startOffset + dx);
+  }
+
+  onPointerUp(e) {
+    if (!this.dragging) return;
+    this.dragging = false;
+    this.viewportEl.classList.remove('dragging');
+    try { this.viewportEl.releasePointerCapture(e.pointerId); } catch (_) { /* ignore */ }
+  }
+}
+
+const queueTicker = new Ticker(document.getElementById('queue-viewport'), document.getElementById('queue-track'));
+const agentTicker = new Ticker(document.getElementById('agent-viewport'), document.getElementById('agent-track'));
+
+let lastFrameTime = null;
+function animationLoop(now) {
+  if (lastFrameTime !== null) {
+    const deltaSeconds = Math.min(0.25, (now - lastFrameTime) / 1000);
+    queueTicker.tick(deltaSeconds);
+    agentTicker.tick(deltaSeconds);
+  }
+  lastFrameTime = now;
+  requestAnimationFrame(animationLoop);
+}
+requestAnimationFrame(animationLoop);
 
 function formatDuration(totalSeconds) {
   const s = Math.max(0, parseInt(totalSeconds, 10) || 0);
@@ -73,25 +161,6 @@ function agentItemHtml(agent) {
     </div>`;
 }
 
-function renderTrack(trackEl, items, itemHtmlFn) {
-  if (!items || items.length === 0) {
-    trackEl.style.animation = 'none';
-    trackEl.innerHTML = '<div class="ticker-item"><span class="ti-name">Keine Daten</span></div>';
-    return;
-  }
-  const html = items.map(itemHtmlFn).join('');
-  // Inhalt doppelt rendern für nahtlose Endlos-Schleife (Animation läuft bis -50%)
-  trackEl.innerHTML = html + html;
-
-  const singleWidth = trackEl.scrollWidth / 2;
-  const duration = Math.max(4, singleWidth / scrollSpeed);
-  trackEl.style.animation = 'none';
-  trackEl.style.setProperty('--scroll-duration', `${duration}s`);
-  // Reflow erzwingen, damit die Animation mit neuer Dauer neu startet
-  void trackEl.offsetWidth;
-  trackEl.style.animation = '';
-}
-
 function setConnectionState(state, label) {
   connState.className = `conn-state conn-${state}`;
   connState.textContent = label;
@@ -111,8 +180,8 @@ window.ringcx.onData((payload) => {
   clearError();
   setConnectionState('ok', 'verbunden');
   lastUpdateEl.textContent = new Date(payload.lastUpdate).toLocaleTimeString('de-DE');
-  renderTrack(queueTrack, payload.queues, queueItemHtml);
-  renderTrack(agentTrack, payload.agents, agentItemHtml);
+  queueTicker.render(payload.queues, queueItemHtml);
+  agentTicker.render(payload.agents, agentItemHtml);
 });
 
 window.ringcx.onError((message) => {
@@ -126,7 +195,10 @@ window.ringcx.onConfigUpdated((cfg) => {
 });
 
 function applyLocalConfig(cfg) {
-  scrollSpeed = Math.max(1, parseInt(cfg.SCROLL_SPEED, 10) || 70);
+  const parsedSpeed = parseInt(cfg.SCROLL_SPEED, 10);
+  scrollSpeed = Number.isNaN(parsedSpeed) ? 70 : Math.max(0, parsedSpeed);
+  const fontSize = Math.max(8, parseInt(cfg.FONT_SIZE, 10) || 15);
+  document.documentElement.style.setProperty('--ticker-font-size', `${fontSize}px`);
   const borderless = !!cfg.BORDERLESS;
   minimizeBtn.hidden = !borderless;
   closeBtn.hidden = !borderless;
